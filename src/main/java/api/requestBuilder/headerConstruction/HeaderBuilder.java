@@ -1,6 +1,6 @@
-package api.RequestBuilder.headerConstruction;
+package api.requestBuilder.headerConstruction;
 
-import api.RequestBuilder.authentication.SecretsAndCertificates;
+import api.requestBuilder.authentication.SecretsAndCertificates;
 import io.restassured.http.Header;
 import io.restassured.http.Headers;
 

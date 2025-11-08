@@ -1,8 +1,5 @@
-package api.RequestLogger;
+package api.requestLogger;
 
-import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.Status;
-import com.google.gson.*;
 import io.restassured.http.Method;
 import io.restassured.response.Response;
 

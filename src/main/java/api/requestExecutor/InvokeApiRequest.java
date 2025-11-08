@@ -1,8 +1,7 @@
-package api.RequestExecutor;
+package api.requestExecutor;
 
-import api.RequestLogger.APIConsoleLogger;
-import api.RequestLogger.ApiLoggerFactory;
-import api.RequestLogger.LoggingContext;
+import api.requestLogger.ApiLoggerFactory;
+import api.requestLogger.LoggingContext;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.Status;
 import com.google.gson.JsonParser;

@@ -1,4 +1,4 @@
-package api.RequestBuilder.uriConstruction;
+package api.requestBuilder.uriConstruction;
 
 import java.util.Map;
 import java.util.regex.Matcher;

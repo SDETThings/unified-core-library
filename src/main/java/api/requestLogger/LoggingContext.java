@@ -1,4 +1,4 @@
-package api.RequestLogger;
+package api.requestLogger;
 
 import com.aventstack.extentreports.ExtentTest;
 

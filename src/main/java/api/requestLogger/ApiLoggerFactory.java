@@ -1,4 +1,4 @@
-package api.RequestLogger;
+package api.requestLogger;
 
 public class ApiLoggerFactory {
     private ApiLoggerFactory() {}

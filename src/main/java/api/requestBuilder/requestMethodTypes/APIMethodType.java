@@ -1,4 +1,4 @@
-package api.RequestBuilder.requestMethodTypes;
+package api.requestBuilder.requestMethodTypes;
 
 public enum APIMethodType {
     GET("GET"),

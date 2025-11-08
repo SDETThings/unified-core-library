@@ -1,12 +1,9 @@
-package api.RequestBuilder.authentication;
+package api.requestBuilder.authentication;
 
-import api.RequestBuilder.headerConstruction.HeaderBuilder;
-import api.RequestLogger.APIConsoleLogger;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AzureCliCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
-import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
@@ -14,7 +11,6 @@ import com.azure.security.keyvault.secrets.models.KeyVaultSecret;
 import io.restassured.config.SSLConfig;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 
-import javax.swing.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.*;
