@@ -4,614 +4,926 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
-import web.selenium.synchronisation.DriverWaits;
-import web.selenium.synchronisation.WebDriverWaits;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import ru.yandex.qatools.ashot.AShot;
+import ru.yandex.qatools.ashot.Screenshot;
+import ru.yandex.qatools.ashot.shooting.ShootingStrategies;
+import web.errorHandler.ElementMetaExtractor;
+import web.errorHandler.ErrorReporter;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class DriverActions extends DriverWaits {
-    private WebDriverWaits webDriverWaits;
-    private JavascriptExecutor javascriptExecutor;
+public class DriverActions  {
     private static final Logger log = LogManager.getLogger(DriverActions.class);
 
-    public DriverActions(WebDriverWaits webDriverWaits) {
-        this.webDriverWaits = webDriverWaits;
-    }
-    public boolean clickOnWebElement(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) throws Exception {
-
-        boolean flag = false;
-        if (webDriverWaits.apply(driver, ele, timeoutSeconds, pollingIntervalSeconds)){
-            waitForElementToBeClickable(ele, timeoutSeconds, pollingIntervalSeconds);
-            scrollIntoViewAndHighlight(driver,ele);
-            ele.click();
-            flag = true;
-        }else
-        {
-                log.error("Cannot find given web element : " + ele);
-        }
-        return flag;
-    }
-    public boolean sendKeys(WebDriver driver, WebElement ele,String text,int timeoutSeconds, int pollingIntervalSeconds) throws Exception {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        scrollIntoViewAndHighlight(driver,ele);
-        boolean flag = false;
-        try
-        {
-            if(webDriverWaits.apply(driver, ele, timeoutSeconds, pollingIntervalSeconds))
-            {
-                ele.sendKeys(text);
-                flag = true;
-            }else {
-                log.error("Cannot find given web element : " + ele);
-            }
-        }catch (Exception e)
-        {
-            log.error("Cannot enter text : " + text + " in text box : " + ele);
-            throw new Exception();
-        }
-        return flag;
-    }
-    public boolean enterText(WebDriver driver, WebElement ele,String text,int timeoutSeconds, int pollingIntervalSeconds) throws Exception {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        scrollIntoViewAndHighlight(driver,ele);
-        boolean flag = false;
-        try
-        {
-            if(webDriverWaits.apply(driver, ele, timeoutSeconds, pollingIntervalSeconds))
-            {
-                ele.sendKeys(text);
-                flag = true;
-            }else {
-                log.error("Cannot find given web element : " + ele);
-            }
-        }catch (Exception e)
-        {
-            log.error("Cannot enter text : " + text + " in text box : " + ele);
-            throw new Exception();
-        }
-        return flag;
-    }
-    public String getText(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) throws Exception {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        scrollIntoViewAndHighlight(driver,ele);
-
-        return ele.getText();
-    }
-    public String getTitle(WebDriver driver) throws InterruptedException {
-        String text = null;
-        text = driver.getTitle();
-        if (text!=null) {
-            log.debug("Title of the page is: \"" + text + "\"");
-        }else{
-            throw  new RuntimeException("Title of the page is null ");
-        }
-        return text;
-    }
-    public void scrollByVisibilityOfElement(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].scrollIntoView();", ele);
-    }
-    public void click(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) throws InterruptedException {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        ele.click();
-    }
-    public boolean findElement(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
+    // **************************************************************************************************
+    //                               --- Common  WEB ELEMENT Interactions ---
+    // **************************************************************************************************
+    public boolean clickOnElement(WebDriver driver, WebElement ele)  {
         try {
-            ele.isDisplayed();
-            flag = true;
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.click();
+                return true; // must return something
+            }, "Click on Element");
+            return Boolean.TRUE.equals(result);
         } catch (Exception e) {
-            flag = false;
-        } finally {
-            if (flag) {
-                System.out.println("Successfully Found element");
-
-            } else {
-                System.out.println("Unable to locate element at: "+ele);
-            }
-        }
-        return flag;
-    }
-    public boolean isDisplayed(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        flag = findElement(driver, ele,timeoutSeconds,pollingIntervalSeconds);
-        if (flag) {
-            flag = ele.isDisplayed();
-            if (flag) {
-                System.out.println("The element is Displayed");
-            } else {
-                System.out.println("The element is not Displayed");
-            }
-        } else {
-            System.out.println("Not displayed ");
-        }
-        return flag;
-    }
-    public boolean isSelected(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        flag = findElement(driver, ele,timeoutSeconds,pollingIntervalSeconds);
-        if (flag) {
-            flag = ele.isSelected();
-            if (flag) {
-                System.out.println("The element is Selected");
-            } else {
-                System.out.println("The element is not Selected");
-            }
-        } else {
-            System.out.println("Not selected ");
-        }
-        return flag;
-    }
-    public boolean isEnabled(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeEnabled(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag;
-        flag = findElement(driver, ele,timeoutSeconds,pollingIntervalSeconds);
-        if (flag) {
-            flag = ele.isEnabled();
-            if (flag) {
-                System.out.println("The element is Enabled");
-            } else {
-                System.out.println("The element is not Enabled: "+ele);
-            }
-        }
-        return flag;
-    }
-    public boolean selectBySendkeys(String value, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            ele.sendKeys(value);
-            flag = true;
-            return true;
-        } catch (Exception e) {
-
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Select value from the DropDown");
-            } else {
-                System.out.println("Not Selected value from the DropDown");
-                // throw new ElementNotFoundException("", "", "")
-            }
-        }
-    }
-    public boolean selectByIndex(WebElement element, int index,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(element,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            Select s = new Select(element);
-            s.selectByIndex(index);
-            flag = true;
-            return true;
-        } catch (Exception e) {
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Option selected by Index");
-            } else {
-                System.out.println("Option not selected by Index");
-            }
-        }
-    }
-    public boolean selectByValue(WebElement ele, String value,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            Select s = new Select(ele);
-            s.selectByValue(value);
-            flag = true;
-            return true;
-        } catch (Exception e) {
-
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Option selected by Value");
-            } else {
-                System.out.println("Option not selected by Value");
-            }
-        }
-    }
-    public boolean selectByVisibleText(String visibletext, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            Select s = new Select(ele);
-            s.selectByVisibleText(visibletext);
-            flag = true;
-            return true;
-        } catch (Exception e) {
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Option selected by VisibleText");
-            } else {
-                System.out.println("Option not selected by VisibleText");
-            }
-        }
-    }
-    public boolean JSClick(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeClickable(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            // WebElement element = driver.findElement(locator);
-            JavascriptExecutor executor = (JavascriptExecutor) driver;
-            executor.executeScript("arguments[0].click();", ele);
-            // driver.executeAsyncScript("arguments[0].click();", element);
-
-            flag = true;
-
-        }
-
-        catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
             throw e;
-
-        } finally {
-            if (flag) {
-                System.out.println("Click Action is performed");
-            } else if (!flag) {
-                System.out.println("Click Action is not performed");
-            }
         }
-        return flag;
     }
-    public boolean switchToFrameById(WebDriver driver, String idValue,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
+    public boolean clickOnElementUsingJavaScript(WebDriver driver, WebElement ele) {
         try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                JavascriptExecutor executor = (JavascriptExecutor) driver;
+                executor.executeScript("arguments[0].click();", ele);
+                return true; // must return something
+            }, "Click on Element using java script");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean type(WebDriver driver, WebElement ele,String text) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.sendKeys(text);
+                return true; // must return something
+            }, "Enter text");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public String getText(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(ele, ele::getText,"Get text from element");
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean clearText(WebDriver driver,WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean isCleared =  handler.performActionWithRetry(ele, ()->{
+                ele.clear();
+                return true;
+            },"Clear text");
+            return Boolean.TRUE.equals(isCleared);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public String getAttribute(WebDriver driver,String attributeKey,WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(ele, ()-> ele.getAttribute(attributeKey),"Get attribute value from html tag");
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean submit(WebDriver driver,WebElement ele){
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.submit();
+                return true; // must return something
+            }, "Click on Element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // **************************************************************************************************
+    //                                  --- Verify WEB ELEMENT States ---
+    // **************************************************************************************************
+
+    public boolean isDisplayed(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.isDisplayed();
+                return true; // must return something
+            }, "Click on Element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean isSelected(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.isSelected();
+                return true; // must return something
+            }, "Click on Element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean isEnabled(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ele.isEnabled();
+                return true; // must return something
+            }, "Click on Element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // **************************************************************************************************
+    //                                  --- Dropdown / Select Actions ---
+    // **************************************************************************************************
+    public boolean selectByIndex(WebDriver driver,WebElement ele, int index) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                Select s = new Select(ele);
+                s.selectByIndex(index);
+                return true; // must return something
+            }, "Select dropdown option: "+index);
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean selectByValue(WebDriver driver, WebElement ele, String value) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                Select s = new Select(ele);
+                s.selectByValue(value);
+                return true; // must return something
+            }, "Select dropdown option: "+value);
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public boolean selectByVisibleText(WebDriver driver,String visibletext, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                Select s = new Select(ele);
+                s.selectByVisibleText(visibletext);
+                return true; // must return something
+            }, "Select dropdown option: "+visibletext);
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    public List<WebElement> getAllDropdownOptions(WebDriver driver, String visibletext, WebElement ele) {
+        List<WebElement> result = null;
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            result = handler.performActionWithRetry(ele, () -> {
+                Select s = new Select(ele);
+                s.getOptions();
+                return null;
+            }, "Get all dropdown options");
+            return result;
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+    // **************************************************************************************************
+    //                                  --- Mouse / Keyboard Actions ---
+    // **************************************************************************************************
+    // ✅ Mouse hover on element
+    public boolean mouseHover(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                new Actions(driver)
+                        .moveToElement(ele)
+                        .perform();
+                return true;
+            }, "Mouse hover on element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;        }
+    }
+
+    // ✅ Drag from source to target
+    public boolean dragAndDrop(WebDriver driver, WebElement source, WebElement target) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(source, () -> {
+                new Actions(driver)
+                        .dragAndDrop(source, target)
+                        .perform();
+                return true;
+            }, "Drag and drop from source to target");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(source);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Slider (basically drag by small offset)
+    public boolean slider(WebDriver driver, WebElement ele, int x, int y) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                new Actions(driver)
+                        .dragAndDropBy(ele, x, y)
+                        .perform();
+                return true;
+            }, "Slide element by offset (" + x + "," + y + ")");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Right click on element
+    public boolean rightClick(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                new Actions(driver)
+                        .contextClick(ele)
+                        .perform();
+                return true;
+            }, "Right click on element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Double click on element
+    public boolean doubleClick(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                new Actions(driver)
+                        .doubleClick(ele)
+                        .perform();
+                return true;
+            }, "Double click on element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Press custom key (example: TAB, ENTER, etc.)
+    public boolean pressCustomKey(WebDriver driver, Keys key) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(null, () -> {
+                new Actions(driver)
+                        .sendKeys(key)
+                        .perform();
+                return true;
+            }, "Press custom key: " + key.name());
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // **************************************************************************************************
+    //                                  --- Scrolling & JS Helpers ---
+    // **************************************************************************************************
+// ✅ Scroll element into view using default behavior
+    public boolean scrollByVisibilityOfElement(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ((JavascriptExecutor) driver)
+                        .executeScript("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", ele);
+                return true;
+            }, "Scroll element into view (by visibility)");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Scroll element into view & highlight
+    public boolean scrollIntoViewAndHighlight(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                JavascriptExecutor js = (JavascriptExecutor) driver;
+                js.executeScript("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", ele);
+                js.executeScript("""
+                    arguments[0].style.border='3px solid #00ff00';
+                    arguments[0].style.backgroundColor='rgba(255,255,0,0.3)';
+                """, ele);
+                return true;
+            }, "Scroll into view and highlight element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Scroll element into view without highlighting
+    public boolean scrollIntoView(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                ((JavascriptExecutor) driver)
+                        .executeScript("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", ele);
+                return true;
+            }, "Scroll element into view");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Remove highlight from element
+    public boolean unhighlight(WebDriver driver, WebElement ele) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            Boolean result = handler.performActionWithRetry(ele, () -> {
+                JavascriptExecutor js = (JavascriptExecutor) driver;
+                String originalStyle = (String) js.executeScript("return arguments[0].getAttribute('style');", ele);
+                js.executeScript("arguments[0].setAttribute('style', arguments[1]);", ele, originalStyle);
+                return true;
+            }, "Unhighlight element");
+            return Boolean.TRUE.equals(result);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(ele);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // ✅ Scroll entire page to bottom
+    public boolean scrollToBottom(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });");
+            return true;
+        }, "Scroll to bottom of page");
+        return Boolean.TRUE.equals(result);
+    }
+
+    // ✅ Scroll entire page to top
+    public boolean scrollToTop(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("window.scrollTo({ top: 0, behavior: 'smooth' });");
+            return true;
+        }, "Scroll to top of page");
+        return Boolean.TRUE.equals(result);
+    }
+
+    // **************************************************************************************************
+    //                                  --- Frame & Window Handling ---
+    // **************************************************************************************************
+    // ✅ Switch to frame using frame ID
+    public boolean switchToFrameById(WebDriver driver, String idValue) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
             driver.switchTo().frame(idValue);
-            flag = true;
             return true;
-        } catch (Exception e) {
-
-            e.printStackTrace();
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Frame with Id \"" + idValue + "\" is selected");
-            } else {
-                System.out.println("Frame with Id \"" + idValue + "\" is not selected");
-            }
-        }
+        }, "Switch to frame by ID: " + idValue);
+        return Boolean.TRUE.equals(result);
     }
-    public boolean switchToFrameByName(WebDriver driver, String nameValue,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
-        try {
+
+    // ✅ Switch to frame using frame Name
+    public boolean switchToFrameByName(WebDriver driver, String nameValue) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
             driver.switchTo().frame(nameValue);
-            flag = true;
             return true;
-        } catch (Exception e) {
-
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Frame with Name \"" + nameValue + "\" is selected");
-            } else if (!flag) {
-                System.out.println("Frame with Name \"" + nameValue + "\" is not selected");
-            }
-        }
+        }, "Switch to frame by Name: " + nameValue);
+        return Boolean.TRUE.equals(result);
     }
-    public boolean switchToDefaultFrame(WebDriver driver,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
-        try {
+
+    // ✅ Switch back to default content
+    public boolean switchToDefaultFrame(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
             driver.switchTo().defaultContent();
-            flag = true;
             return true;
-        } catch (Exception e) {
-            e.printStackTrace();
+        }, "Switch to default frame");
+        return Boolean.TRUE.equals(result);
+    }
+
+    // ✅ Switch to a specific window by title
+    public boolean switchWindowByTitle(WebDriver driver, String windowTitle) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            Set<String> handles = driver.getWindowHandles();
+            for (String handle : handles) {
+                driver.switchTo().window(handle);
+                if (driver.getTitle().contains(windowTitle)) {
+                    return true;
+                }
+            }
+            return false; // Title not found
+        }, "Switch to window by title: " + windowTitle);
+        return Boolean.TRUE.equals(result);
+    }
+
+    // ✅ Switch to newly opened window (last handle)
+    public boolean switchToNewWindow(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            Set<String> handles = driver.getWindowHandles();
+            String[] windows = handles.toArray(new String[0]);
+            if (windows.length > 1) {
+                driver.switchTo().window(windows[windows.length - 1]);
+                return true;
+            }
             return false;
-        } finally {
-            if (flag) {
-                // SuccessReport("SelectFrame ","Frame with Name is selected");
-            } else if (!flag) {
-                // failureReport("SelectFrame ","The Frame is not selected");
-            }
-        }
+        }, "Switch to new (latest) window");
+        return Boolean.TRUE.equals(result);
     }
-    public void mouseOverElement(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            new Actions(driver).moveToElement(ele).build().perform();
-            flag = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (flag) {
-                System.out.println(" MouserOver Action is performed on ");
-            } else {
-                System.out.println("MouseOver action is not performed on");
-            }
-        }
-    }
-    public boolean moveToElement(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            // WebElement element = driver.findElement(locator);
-            JavascriptExecutor executor = (JavascriptExecutor) driver;
-            executor.executeScript("arguments[0].scrollIntoView(true);", ele);
-            Actions actions = new Actions(driver);
-            // actions.moveToElement(driver.findElement(locator)).build().perform();
-            actions.moveToElement(ele).build().perform();
-            flag = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return flag;
-    }
-    public boolean mouseover(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            new Actions(driver).moveToElement(ele).build().perform();
-            flag = true;
+
+    // ✅ Switch to parent window (first handle)
+    public boolean switchToParentWindow(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            Set<String> handles = driver.getWindowHandles();
+            String[] windows = handles.toArray(new String[0]);
+            driver.switchTo().window(windows[0]);
             return true;
-        } catch (Exception e) {
-            return false;
-        } finally {
-            /*
-             * if (flag) {
-             * SuccessReport("MouseOver ","MouserOver Action is performed on \""+locatorName
-             * +"\""); } else {
-             * failureReport("MouseOver","MouseOver action is not performed on \""
-             * +locatorName+"\""); }
-             */
-        }
+        }, "Switch to parent (first) window");
+        return Boolean.TRUE.equals(result);
     }
-    public boolean draggable(WebDriver driver, WebElement ele, int x, int y,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        javascriptExecutor.executeScript("arguments[0].scrollIntoView(true)");
-        javascriptExecutor.executeScript("arguments[0].setAttribute('style','background: green; border: solid 2px red');");
-        boolean flag = false;
-        try {
-            new Actions(driver).dragAndDropBy(ele, x, y).build().perform();
-            Thread.sleep(5000);
-            flag = true;
+
+    // ✅ Close all child windows and return to parent
+    public boolean closeAllChildWindows(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            String parentHandle = driver.getWindowHandle();
+            Set<String> handles = driver.getWindowHandles();
+            for (String handle : handles) {
+                if (!handle.equals(parentHandle)) {
+                    driver.switchTo().window(handle);
+                    driver.close();
+                }
+            }
+            driver.switchTo().window(parentHandle);
             return true;
+        }, "Close all child windows and return to parent");
+        return Boolean.TRUE.equals(result);
+    }
 
-        } catch (Exception e) {
+    // **************************************************************************************************
+    //                                  --- Alert Handling ---
+    // **************************************************************************************************
+    // ✅ Wait until alert is present (internal helper)
+    private Alert waitForAlert(WebDriver driver, int timeoutSeconds) {
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+            return wait.until(ExpectedConditions.alertIsPresent());
+        } catch (TimeoutException e) {
+            return null;
+        }
+    }
 
+    // ✅ Accept alert if present
+    public boolean acceptAlert(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            Alert alert = waitForAlert(driver, 5);
+            if (alert != null) {
+                alert.accept();
+                return true;
+            }
             return false;
-
-        } finally {
-            if (flag) {
-                System.out.println("Draggable Action is performed on \"" + ele + "\"");
-            } else if (!flag) {
-                System.out.println("Draggable action is not performed on \"" + ele + "\"");
-            }
-        }
+        }, "Accept alert if present");
+        return Boolean.TRUE.equals(result);
     }
-    public boolean draganddrop(WebDriver driver, WebElement source, WebElement target,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(source,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
-        try {
-            new Actions(driver).dragAndDrop(source, target).perform();
-            flag = true;
-            return true;
-        } catch (Exception e) {
 
+    // ✅ Dismiss alert if present
+    public boolean dismissAlert(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            Alert alert = waitForAlert(driver, 5);
+            if (alert != null) {
+                alert.dismiss();
+                return true;
+            }
             return false;
-        } finally {
-            if (flag) {
-                System.out.println("DragAndDrop Action is performed");
-            } else if (!flag) {
-                System.out.println("DragAndDrop Action is not performed");
-            }
-        }
+        }, "Dismiss alert if present");
+        return Boolean.TRUE.equals(result);
     }
-    public boolean slider(WebDriver driver, WebElement ele, int x, int y,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
+
+    // ✅ Check if alert is present
+    public boolean isAlertPresent(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        Boolean result = handler.performActionWithRetry(null, () -> {
+            try {
+                driver.switchTo().alert();
+                return true;
+            } catch (NoAlertPresentException e) {
+                return false;
+            }
+        }, "Check if alert is present");
+        return Boolean.TRUE.equals(result);
+    }
+
+    // ✅ Get alert text (if any)
+    public String getAlertText(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            Alert alert = waitForAlert(driver, 5);
+            if (alert != null) {
+                return alert.getText();
+            }
+            return null;
+        }, "Get alert text");
+    }
+
+    // **************************************************************************************************
+    //                                  --- Dynamic web table utilities ---
+    // **************************************************************************************************
+// ✅ Waits for table visibility before interacting
+    private WebElement waitForTable(WebDriver driver, WebElement table, int timeoutSeconds) {
         try {
-            // new Actions(driver).dragAndDropBy(dragitem, 400, 1).build()
-            // .perform();
-            new Actions(driver).dragAndDropBy(ele, x, y).build().perform();// 150,0
-            Thread.sleep(5000);
-            flag = true;
-            return true;
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+            return wait.until(ExpectedConditions.visibilityOf(table));
         } catch (Exception e) {
-
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Slider Action is performed");
-            } else {
-                System.out.println("Slider Action is not performed");
-            }
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
     }
-    public boolean rightclick(WebDriver driver, WebElement ele,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(ele,timeoutSeconds,pollingIntervalSeconds);
-        boolean flag = false;
+
+    // ✅ Get total row count (excluding header row if present)
+    public int getRowCount(WebDriver driver, WebElement table) {
         try {
-            Actions clicker = new Actions(driver);
-            clicker.contextClick(ele).perform();
-            flag = true;
-            return true;
-            // driver.findElement(by1).sendKeys(Keys.DOWN);
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<WebElement> rows = table.findElements(By.xpath(".//tr"));
+                return rows.size();
+            }, "Get table row count");
         } catch (Exception e) {
-
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("RightClick Action is performed");
-            } else {
-                System.out.println("RightClick Action is not performed");
-            }
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
     }
-    public boolean switchWindowByTitle(WebDriver driver, String windowTitle, int count,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
+
+    // ✅ Get total column count (from header row if present)
+    public int getColumnCount(WebDriver driver, WebElement table) {
         try {
-            Set<String> windowList = driver.getWindowHandles();
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<WebElement> headers = table.findElements(By.xpath(".//th"));
+                if (!headers.isEmpty()) return headers.size();
 
-            String[] array = windowList.toArray(new String[0]);
-
-            driver.switchTo().window(array[count - 1]);
-
-            if (driver.getTitle().contains(windowTitle)) {
-                flag = true;
-            } else {
-                flag = false;
-            }
-            return flag;
+                List<WebElement> firstRowCells = table.findElements(By.xpath(".//tr[1]/td"));
+                return firstRowCells.size();
+            }, "Get table column count");
         } catch (Exception e) {
-            // flag = true;
-            return false;
-        } finally {
-            if (flag) {
-                System.out.println("Navigated to the window with title");
-            } else {
-                System.out.println("The Window with title is not Selected");
-            }
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
     }
-    public boolean switchToNewWindow(WebDriver driver,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
-        try {
 
-            Set<String> s = driver.getWindowHandles();
-            Object popup[] = s.toArray();
-            driver.switchTo().window(popup[1].toString());
-            flag = true;
-            return flag;
+    // ✅ Get list of header names
+    public List<String> getHeaderNames(WebDriver driver, WebElement table) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<WebElement> headers = table.findElements(By.xpath(".//th"));
+                if (headers.isEmpty()) return Collections.emptyList();
+
+                return headers.stream()
+                        .map(WebElement::getText)
+                        .map(String::trim)
+                        .collect(Collectors.toList());
+            }, "Get header names");
         } catch (Exception e) {
-            flag = false;
-            return flag;
-        } finally {
-            if (flag) {
-                System.out.println("Window is Navigated with title");
-            } else {
-                System.out.println("The Window with title: is not Selected");
-            }
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
     }
-    public boolean switchToOldWindow(WebDriver driver,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean flag = false;
-        try {
 
-            Set<String> s = driver.getWindowHandles();
-            Object popup[] = s.toArray();
-            driver.switchTo().window(popup[0].toString());
-            flag = true;
-            return flag;
+    // ✅ Get cell value by row and column index (1-based)
+    public String getCellData(WebDriver driver, WebElement table, int rowIndex, int colIndex) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                WebElement cell = table.findElement(By.xpath(".//tr[" + rowIndex + "]/td[" + colIndex + "]"));
+                return cell.getText().trim();
+            }, "Get cell data for row " + rowIndex + ", column " + colIndex);
         } catch (Exception e) {
-            flag = false;
-            return flag;
-        } finally {
-            if (flag) {
-                System.out.println("Focus navigated to the window with title");
-            } else {
-                System.out.println("The Window with title: is not Selected");
-            }
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
     }
-    public int getColumncount(WebElement row,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(row,timeoutSeconds,pollingIntervalSeconds);
-        List<WebElement> columns = row.findElements(By.tagName("td"));
-        int a = columns.size();
-        System.out.println(columns.size());
-        for (WebElement column : columns) {
-            System.out.print(column.getText());
-            System.out.print("|");
-        }
-        return a;
-    }
-    public int getRowCount(WebElement table,int timeoutSeconds, int pollingIntervalSeconds) {
-        waitForElementToBeVisible(table,timeoutSeconds,pollingIntervalSeconds);
-        List<WebElement> rows = table.findElements(By.tagName("tr"));
-        int a = rows.size() - 1;
-        return a;
-    }
-    public boolean Alert(WebDriver driver,int timeoutSeconds, int pollingIntervalSeconds) {
-        boolean presentFlag = false;
-        Alert alert = null;
 
+    // ✅ Get cell value by header name (if headers exist)
+    public String getCellDataByHeader(WebDriver driver, WebElement table, int rowIndex, String headerName) {
         try {
-            // Check the presence of alert
-            alert = driver.switchTo().alert();
-            // if present consume the alert
-            alert.accept();
-            presentFlag = true;
-        } catch (NoAlertPresentException ex) {
-            // Alert present; set the flag
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<String> headers = getHeaderNames(driver, table);
+                int colIndex = headers.indexOf(headerName.trim()) + 1;
 
-            // Alert not present
-            ex.printStackTrace();
-        } finally {
-            if (!presentFlag) {
-                System.out.println("The Alert is handled successfully");
-            } else {
-                System.out.println("There was no alert to handle");
-            }
+                if (colIndex == 0) {
+                    throw new NoSuchElementException("Header '" + headerName + "' not found");
+                }
+
+                WebElement cell = table.findElement(By.xpath(".//tr[" + (rowIndex + 1) + "]/td[" + colIndex + "]"));
+                return cell.getText().trim();
+            }, "Get cell data by header name: " + headerName);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
         }
+    }
 
-        return presentFlag;
-    }
-    public boolean isAlertPresent(WebDriver driver,int timeoutSeconds, int pollingIntervalSeconds) {
+    // ✅ Find row index containing specific text
+    public int findRowWithText(WebDriver driver, WebElement table, String searchText) {
         try {
-            driver.switchTo().alert();
-            return true;
-        } // try
-        catch (NoAlertPresentException Ex) {
-            return false;
-        } // catch
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<WebElement> rows = table.findElements(By.xpath(".//tr"));
+                for (int i = 0; i < rows.size(); i++) {
+                    if (rows.get(i).getText().contains(searchText)) {
+                        return i + 1; // Return 1-based index
+                    }
+                }
+                return -1; // Not found
+            }, "Find row containing text: " + searchText);
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
     }
+
+    // ✅ Get entire table data as List<Map<Header, Value>>
+    public List<Map<String, String>> getAllTableData(WebDriver driver, WebElement table) {
+        try {
+            ElementActionHandler handler = new ElementActionHandler(driver);
+            return handler.performActionWithRetry(table, () -> {
+                List<String> headers = getHeaderNames(driver, table);
+                List<Map<String, String>> tableData = new ArrayList<>();
+                List<WebElement> rows = table.findElements(By.xpath(".//tr[td]")); // skip header-only rows
+
+                for (WebElement row : rows) {
+                    List<WebElement> cells = row.findElements(By.xpath(".//td"));
+                    Map<String, String> rowData = new LinkedHashMap<>();
+                    for (int i = 0; i < cells.size(); i++) {
+                        String key = headers.size() > i ? headers.get(i) : "Column" + (i + 1);
+                        rowData.put(key, cells.get(i).getText().trim());
+                    }
+                    tableData.add(rowData);
+                }
+                return tableData;
+            }, "Get all table data as key-value map");
+        } catch (Exception e) {
+            String[] details = ElementMetaExtractor.getElementDetails(table);
+            ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
+            throw e;
+        }
+    }
+
+    // **************************************************************************************************
+    //                                  --- Windows Utilities ---
+    // **************************************************************************************************
+    // ✅ Get Current URL
     public String getCurrentURL(WebDriver driver) {
-        boolean flag = false;
-
-        String text = driver.getCurrentUrl();
-        if (flag) {
-            System.out.println("Current URL is: \"" + text + "\"");
-        }
-        return text;
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String currentUrl = driver.getCurrentUrl();
+            if (currentUrl == null || currentUrl.isEmpty()) {
+                throw new RuntimeException("Current URL is null or empty");
+            }
+            log.info("Current URL: {}", currentUrl);
+            return currentUrl;
+        }, "Get current page URL");
     }
-    public String screenShot(WebDriver driver, String filename, String path) {
-        String dateName = new SimpleDateFormat("yyyyMMddhhmmss").format(new Date());
-        TakesScreenshot takesScreenshot = (TakesScreenshot) driver;
-        File source = takesScreenshot.getScreenshotAs(OutputType.FILE);
-        String destination = path + "/" + filename + "_" + dateName + ".png";
-        try {
-            FileUtils.copyFile(source, new File(destination));
-        } catch (Exception e) {
-            e.getMessage();
-        }
-        // This new path for jenkins
-        //String newImageString = "./src/test/resources/Screenshot" + filename
-        //+ "_" + dateName + ".png";
 
+    // ✅ Get Page Title
+    public String getTitle(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String title = driver.getTitle();
+            if (title == null || title.isEmpty()) {
+                throw new RuntimeException("Page title is null or empty");
+            }
+            log.info("Page title: {}", title);
+            return title;
+        }, "Get page title");
+    }
+
+    // ✅ Navigate Back
+    public String navigateBack(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            driver.navigate().back();
+            String title = driver.getTitle();
+            if (title == null || title.isEmpty()) {
+                throw new RuntimeException("Failed to retrieve page title after navigating back");
+            }
+            log.info("Navigated back to page: {}", title);
+            return title;
+        }, "Navigate back in browser history");
+    }
+
+    // ✅ Navigate Forward
+    public String navigateForward(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            driver.navigate().forward();
+            String title = driver.getTitle();
+            if (title == null || title.isEmpty()) {
+                throw new RuntimeException("Failed to retrieve page title after navigating forward");
+            }
+            log.info("Navigated forward to page: {}", title);
+            return title;
+        }, "Navigate forward in browser history");
+    }
+
+    // ✅ Refresh Current Page
+    public String refreshPage(WebDriver driver) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            driver.navigate().refresh();
+            String title = driver.getTitle();
+            if (title == null || title.isEmpty()) {
+                throw new RuntimeException("Failed to retrieve page title after refresh");
+            }
+            log.info("Page refreshed successfully: {}", title);
+            return title;
+        }, "Refresh the current page");
+    }
+
+    // **************************************************************************************************
+    //                                  --- Reporting and evidence Helpers ---
+    // **************************************************************************************************
+    private String generateFilePath(String filename, String path) {
+        String dateName = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        return path + File.separator + filename + "_" + dateName + ".png";
+    }
+
+    // ✅ Generic helper to save screenshot images
+    private String saveScreenshotImage(BufferedImage image, String destination) throws Exception {
+        File file = new File(destination);
+        FileUtils.forceMkdirParent(file);
+        ImageIO.write(image, "PNG", file);
         return destination;
     }
-    public void scrollIntoViewAndHighlight(WebDriver driver,WebElement ele){
-        javascriptExecutor = (JavascriptExecutor) driver;
-        String originalStyle = ele.getAttribute("style");
-        javascriptExecutor.executeScript("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", ele);
-        javascriptExecutor.executeScript("arguments[0].style.border='3px solid green'; arguments[0].style.backgroundColor='yellow';", ele);
-        //javascriptExecutor.executeScript("arguments[0].setAttribute('style', arguments[1]);", ele, originalStyle);
 
+    // ✅ 1. Capture normal viewport screenshot
+    public String takeViewportScreenshot(WebDriver driver, String filename, String path) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String destination = generateFilePath(filename, path);
+            File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            try {
+                FileUtils.copyFile(source, new File(destination));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            log.info("Viewport screenshot saved at: {}", destination);
+            return destination;
+        }, "Capture viewport screenshot");
     }
-    public void scrollIntoView(WebDriver driver,WebElement ele){
-        javascriptExecutor = (JavascriptExecutor) driver;
-        String originalStyle = ele.getAttribute("style");
-        javascriptExecutor.executeScript("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", ele);
-        //javascriptExecutor.executeScript("arguments[0].setAttribute('style', arguments[1]);", ele, originalStyle);
 
-    }
-    public void unhighlight(WebDriver driver,WebElement ele){
-        javascriptExecutor = (JavascriptExecutor) driver;
-        String originalStyle = ele.getAttribute("style");
-        javascriptExecutor.executeScript("arguments[0].setAttribute('style', arguments[1]);", ele, originalStyle);
+    // ✅ 2. Capture full page screenshot (uses AShot stitching)
+    public String takeFullPageScreenshot(WebDriver driver, String filename, String path) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String destination = generateFilePath(filename, path);
+            Screenshot screenshot = new AShot()
+                    .shootingStrategy(ShootingStrategies.viewportPasting(100))
+                    .takeScreenshot(driver);
 
+            try {
+                saveScreenshotImage(screenshot.getImage(), destination);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            log.info("Full page screenshot saved at: {}", destination);
+            return destination;
+        }, "Capture full page screenshot");
     }
+
+    // ✅ 3. Capture specific element screenshot (uses AShot)
+    public String takeElementScreenshot(WebDriver driver, WebElement element, String filename, String path) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(element, () -> {
+            String destination = generateFilePath(filename, path);
+            Screenshot screenshot = new AShot()
+                    .shootingStrategy(ShootingStrategies.simple())
+                    .takeScreenshot(driver, element);
+
+            try {
+                saveScreenshotImage(screenshot.getImage(), destination);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            log.info("Element screenshot saved at: {}", destination);
+            return destination;
+        }, "Capture specific element screenshot");
+    }
+
+    // ✅ 4. Capture screenshot on failure (e.g., in @AfterMethod)
+    public String captureScreenshotOnFailure(WebDriver driver, String filename, String path) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String destination = generateFilePath(filename + "_FAILURE", path);
+            File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            try {
+                FileUtils.copyFile(source, new File(destination));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            log.warn("Failure screenshot saved at: {}", destination);
+            return destination;
+        }, "Capture screenshot on test failure");
+    }
+
+    // ✅ 5. Attach screenshot to report (returns file path)
+    public String attachScreenshotToReport(WebDriver driver, String filename, String path) {
+        ElementActionHandler handler = new ElementActionHandler(driver);
+        return handler.performActionWithRetry(null, () -> {
+            String destination = generateFilePath(filename + "_REPORT", path);
+            File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            try {
+                FileUtils.copyFile(source, new File(destination));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            log.info("Screenshot attached for report: {}", destination);
+            return destination;
+        }, "Attach screenshot to report");
+    }
+
 
 }
