@@ -4,7 +4,7 @@
 
     <groupId>com.kunal</groupId>
     <artifactId>unified-core-test-automation-library</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>unified-core-test-automation-library</name>
