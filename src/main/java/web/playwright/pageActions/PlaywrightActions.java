@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import web.errorHandler.ElementMetaExtractor;
 import web.errorHandler.ErrorReporter;
 
+
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -80,7 +81,8 @@ public class PlaywrightActions {
     public String getText(Page page, Locator locator) {
         try {
             ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, true);
-            return handler.performActionWithRetry(locator, locator::innerText, "Get element text");
+            String text = handler.performActionWithRetry(locator, locator::innerText, "Get element text");
+            return text;
         } catch (Exception e) {
             String[] details = ElementMetaExtractor.getElementDetails(locator);
             ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
@@ -91,7 +93,8 @@ public class PlaywrightActions {
     public String getAttribute(Page page, Locator locator, String attrName) {
         try {
             ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, true);
-            return handler.performActionWithRetry(locator, () -> locator.getAttribute(attrName), "Get attribute");
+            String text = handler.performActionWithRetry(locator, () -> locator.getAttribute(attrName), "Get attribute");
+            return text;
         } catch (Exception e) {
             String[] details = ElementMetaExtractor.getElementDetails(locator);
             ErrorReporter.reportBusinessError(e, details[0], details[1], "Click");
@@ -202,6 +205,7 @@ public class PlaywrightActions {
             ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, false);
             return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
                 page.evaluate("window.scrollTo(0, 0)");
+
                 return true;
             }, "Scroll to top"));
         } catch (Exception e) {

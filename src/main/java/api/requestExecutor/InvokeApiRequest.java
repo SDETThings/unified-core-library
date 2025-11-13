@@ -1,15 +1,12 @@
 package api.requestExecutor;
 
-import api.requestLogger.ApiLoggerFactory;
-import api.requestLogger.LoggingContext;
-import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.Status;
-import com.google.gson.JsonParser;
+import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.config.SSLConfig;
 import io.restassured.http.Method;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import unifiedReports.LoggerFactory;
 
 import java.util.Map;
 
@@ -28,54 +25,37 @@ public class InvokeApiRequest {
      * @param sslConfig       Optional SSL configuration
      * @return                Rest Assured Response
      */
+    @Step("Execute API Request: {method} - {completeUrl}")
     public Response requestAsync(Method method , String contentType , String completeUrl , Map<String,String> defaultHeaders, Map<String ,String> formParams, String requestPayload, Map<String ,String> queryParams, Map<String ,String> pathParams, SSLConfig sslConfig) {
         long start = System.currentTimeMillis();
         long duration = System.currentTimeMillis() - start;
-        ExtentTest test = LoggingContext.getExtentTest().createNode("<span style='font-weight: bold; color: #00FFFF;'>" + completeUrl + "</span>");;
 
         RequestSpecification requestSpecification = RestAssured.given();
-        //requestSpecification.filter(new TestListener());
-        if(contentType!=null)
-        {
-            requestSpecification.contentType(contentType);
-        }
-        if(requestPayload!=null)
-        {
-            requestSpecification.body(requestPayload);
-        }
-        if(defaultHeaders!=null)
-        {
-            requestSpecification.headers(defaultHeaders);
-        }
-        if(formParams!=null)
-        {
-            requestSpecification.formParams(formParams);
-        }
-        if(queryParams!=null)
-        {
-            requestSpecification.queryParams(queryParams);
-        }
-        if(pathParams!=null)
-        {
-            requestSpecification.pathParams(pathParams);
-        }
-        if(sslConfig!=null)
-        {
-            requestSpecification.config(RestAssured.config().sslConfig(sslConfig));
-        }
-        // Log request details before sending
-        ApiLoggerFactory.getReportLogger().logStartOfEndpointExecutionIntoExtentReport(test,completeUrl);
-        ApiLoggerFactory.getConsoleLogger().logRequest(method, completeUrl, defaultHeaders, requestPayload, queryParams, pathParams);
-        // Making the API call
+        if (contentType != null) requestSpecification.contentType(contentType);
+        if (requestPayload != null) requestSpecification.body(requestPayload);
+        if (defaultHeaders != null) requestSpecification.headers(defaultHeaders);
+        if (formParams != null) requestSpecification.formParams(formParams);
+        if (queryParams != null) requestSpecification.queryParams(queryParams);
+        if (pathParams != null) requestSpecification.pathParams(pathParams);
+        if (sslConfig != null) requestSpecification.config(RestAssured.config().sslConfig(sslConfig));
+
         Response response =requestSpecification.request(method,completeUrl);
-        // Log request details after sending
-        ApiLoggerFactory.getConsoleLogger().logResponse(response,duration);
+        // log to console
+        LoggerFactory.getApiConsoleLogger().logRequest(method, completeUrl, defaultHeaders, requestPayload, queryParams, pathParams);
+
+        // log to Allure report
         if(response.getStatusLine().equalsIgnoreCase("OK") || response.getStatusLine().equalsIgnoreCase("Success")) {
-            ApiLoggerFactory.getReportLogger().logApiCallDetailsInExtentReport(test,Status.PASS, method, JsonParser.parseString(requestPayload).getAsJsonObject(), completeUrl, defaultHeaders, response);
-            ApiLoggerFactory.getReportLogger().logApiCallPassOrFailMessageIntoExtentReport(test,Status.PASS);
+            if(requestPayload==null){
+                LoggerFactory.getApiReportLogger().logApiDetails(method.name(), completeUrl, null, response.getStatusCode(), response.getBody().asString(),true, duration);
+            }else{
+                LoggerFactory.getApiReportLogger().logApiDetails(method.name(), completeUrl, requestPayload, response.getStatusCode(), response.getBody().asString(),true, duration);
+            }
         }else{
-            ApiLoggerFactory.getReportLogger().logApiCallDetailsInExtentReport(test,Status.FAIL, method, JsonParser.parseString(requestPayload).getAsJsonObject(), completeUrl, defaultHeaders, response);
-            ApiLoggerFactory.getReportLogger().logApiCallPassOrFailMessageIntoExtentReport(test,Status.FAIL);
+            if(requestPayload==null){
+                LoggerFactory.getApiReportLogger().logApiDetails(method.name(), completeUrl, null, response.getStatusCode(), response.getBody().asString(),false, duration);
+            }else{
+                LoggerFactory.getApiReportLogger().logApiDetails(method.name(), completeUrl, requestPayload, response.getStatusCode(), response.getBody().asString(),false, duration);
+            }
         }
         return response;
     }

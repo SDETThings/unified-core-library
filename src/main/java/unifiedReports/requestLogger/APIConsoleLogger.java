@@ -1,4 +1,4 @@
-package api.requestLogger;
+package unifiedReports.requestLogger;
 
 import io.restassured.http.Method;
 import io.restassured.response.Response;

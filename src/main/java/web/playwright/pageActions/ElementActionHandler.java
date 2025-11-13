@@ -1,6 +1,7 @@
 package web.playwright.pageActions;
 
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.WaitForSelectorState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,7 +41,7 @@ public class ElementActionHandler {
      * @param <T> return type (e.g. String, Boolean, Integer)
      * @return result from action, or null if failed after retries
      */
-    public <T> T performActionWithRetry(Locator locator, Supplier<T> action, String actionName) {
+    public <T> T performActionWithRetry(Locator locator, Supplier<T> action, String actionName,boolean... skipElementReadinessCheck) {
         int maxAttempts = 2;
         int attempt = 0;
         T result = null;
@@ -50,8 +51,10 @@ public class ElementActionHandler {
                 attempt++;
                 log.info("Attempt {} to perform action: {}", attempt, actionName);
 
-                // 1️⃣ Smart Wait
-                waitForElementToBeReady(locator);
+                if(skipElementReadinessCheck.length==0) {
+                    // 1️⃣ Smart Wait
+                    waitForElementToBeReady(locator);
+                }
 
                 // 2️⃣ Scroll & highlight
                 scrollIntoViewAndHighlight(locator);
@@ -84,20 +87,30 @@ public class ElementActionHandler {
     /**
      * Wait until the locator is visible and enabled.
      */
-    private void waitForElementToBeReady(Locator locator) {
+    private void waitForElementToBeReady(Locator locator,boolean... skipElementReadinessCheck) {
         if (locator == null) {
             throw new PlaywrightException("Locator is null");
         }
+        // 1️⃣ Wait for element to be attached to the DOM
+        locator.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.ATTACHED)
+                .setTimeout(defaultTimeoutSeconds * 1000));
 
-        long endTime = System.currentTimeMillis() + Duration.ofSeconds(defaultTimeoutSeconds).toMillis();
-        while (System.currentTimeMillis() < endTime) {
-            try {
-                if (locator.isVisible() && locator.isEnabled()) {
-                    return;
-                }
-            } catch (Exception ignored) {}
-            sleep(pollingMillis);
+        // 2️⃣ Wait for element to be visible
+        locator.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout(defaultTimeoutSeconds * 1000));
+
+        // 3️⃣ Additional check for enabled state (Playwright doesn’t have direct “enabled” wait)
+        if (!locator.isEnabled()) {
+            long endTime = System.currentTimeMillis() + Duration.ofSeconds(defaultTimeoutSeconds).toMillis();
+            while (System.currentTimeMillis() < endTime) {
+                if (locator.isEnabled()) return;
+                page.waitForTimeout(pollingMillis); // soft polling while visible
+            }
+            throw new PlaywrightException("Element visible but not enabled within timeout: " + describe(locator));
         }
+
         throw new PlaywrightException("Timeout waiting for element to be ready: " + describe(locator));
     }
 
@@ -121,7 +134,11 @@ public class ElementActionHandler {
     }
 
     private void sleep(long ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) {}
+        try {
+            page.waitForTimeout(ms);  // ✅ Playwright’s async-friendly wait
+        } catch (PlaywrightException e) {
+            log.warn("Wait interrupted: {}", e.getMessage());
+        }
     }
 
     private String describe(Locator locator) {

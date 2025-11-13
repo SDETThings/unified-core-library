@@ -1,4 +1,5 @@
 package web.errorHandler;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
