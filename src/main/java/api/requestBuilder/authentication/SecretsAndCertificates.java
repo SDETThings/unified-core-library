@@ -79,8 +79,7 @@ public class SecretsAndCertificates {
      * @param keyvaultUri - target key vault url
      * @param secretName - Name of the secret variable
      * @return secrets as a string
-     */
-    public synchronized String fetchSecretValueFromAzureKeyVault(String keyvaultUri,String secretName) {
+     */    public synchronized String fetchSecretValueFromAzureKeyVault(String keyvaultUri,String secretName) {
         SecretClient secretClient = new SecretClientBuilder().vaultUrl(keyvaultUri).credential(new DefaultAzureCredentialBuilder().build()).buildClient();
         KeyVaultSecret keyVaultSecret = secretClient.getSecret(secretName);
 
