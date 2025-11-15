@@ -5,8 +5,7 @@ import unifiedReports.requestLogger.APIReportLogger;
 import unifiedReports.webLogger.WebConsoleLogger;
 import unifiedReports.webLogger.WebReportLogger;
 
-public class LoggerFactory {
-    private LoggerFactory() {
+public class LoggerFactory {    private LoggerFactory() {
     }
 
     public static APIConsoleLogger getApiConsoleLogger() {
