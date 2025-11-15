@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>SDETThings</groupId>
-    <artifactId>unified-core-test-automation-library</artifactId>
+    <artifactId>unified-core-library</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>unified-core-test-automation-library</name>
+    <name>unified-core-library</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -18,7 +18,7 @@
         <repository>
             <id>github</id>
             <name>Github Packages</name>
-            <url>https://maven.pkg.github.com/SDETThings/unified-core-test-automation-library</url>
+            <url>https://maven.pkg.github.com/SDETThings/unified-core-library</url>
         </repository>
     </distributionManagement>
 
