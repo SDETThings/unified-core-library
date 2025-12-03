@@ -100,6 +100,7 @@ public class ElementActionHandler {
                     }
                     return null;
                 }
+
                 sleep(1000);
             } catch (Exception e) {
                 if(locatorDescription!=null)
