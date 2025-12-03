@@ -14,9 +14,14 @@ import java.util.*;
 
 
 public class PlaywrightActions {
+    private static ThreadLocal<PlaywrightActions> tlActions = ThreadLocal.withInitial(PlaywrightActions::new);
+
+    public static PlaywrightActions getInstance() {
+        return tlActions.get();
+    }
 
     private static final Logger log = LogManager.getLogger(PlaywrightActions.class);
-    private final int defaultTimeoutSeconds = 10;
+    private final int defaultTimeoutSeconds = 20;
     private final int pollingMillis = 500;
 
     // =================================================================
@@ -81,7 +86,7 @@ public class PlaywrightActions {
     public String getText(Page page, Locator locator) {
         try {
             ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, true);
-            String text = handler.performActionWithRetry(locator, locator::innerText, "Get element text");
+            String text = handler.performActionWithRetry(locator, locator::innerText, "Get element text",true);
             return text;
         } catch (Exception e) {
             String[] details = ElementMetaExtractor.getElementDetails(locator);
@@ -207,7 +212,7 @@ public class PlaywrightActions {
                 page.evaluate("window.scrollTo(0, 0)");
 
                 return true;
-            }, "Scroll to top"));
+            }, "Scroll to top",true));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -219,7 +224,7 @@ public class PlaywrightActions {
             return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
                 return true;
-            }, "Scroll to bottom"));
+            }, "Scroll to bottom",true));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -300,12 +305,12 @@ public class PlaywrightActions {
     // =================================================================
     public String getCurrentUrl(Page page) {
         ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, true);
-        return handler.performActionWithRetry(null, page::url, "Get current URL");
+        return handler.performActionWithRetry(null, page::url, "Get current URL",true);
     }
 
     public String getTitle(Page page) {
         ElementActionHandler handler = new ElementActionHandler(page, defaultTimeoutSeconds, pollingMillis, true);
-        return handler.performActionWithRetry(null, page::title, "Get page title");
+        return handler.performActionWithRetry(null, page::title, "Get page title",true);
     }
 
     public boolean navigateBack(Page page) {
@@ -321,7 +326,7 @@ public class PlaywrightActions {
         return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
             page.goForward();
             return true;
-        }, "Navigate forward"));
+        }, "Navigate forward",true));
     }
 
     public boolean refreshPage(Page page) {
@@ -329,7 +334,7 @@ public class PlaywrightActions {
         return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
             page.reload();
             return true;
-        }, "Refresh page"));
+        }, "Refresh page",true));
     }
 
     // =================================================================
@@ -340,7 +345,7 @@ public class PlaywrightActions {
         return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
             page.onceDialog(Dialog::accept);
             return true;
-        }, "Accept dialog"));
+        }, "Accept dialog",true));
     }
 
     public boolean dismissDialog(Page page) {
@@ -348,7 +353,7 @@ public class PlaywrightActions {
         return Boolean.TRUE.equals(handler.performActionWithRetry(null, () -> {
             page.onceDialog(Dialog::dismiss);
             return true;
-        }, "Dismiss dialog"));
+        }, "Dismiss dialog",true));
     }
 
     // =================================================================

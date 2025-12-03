@@ -20,8 +20,8 @@ public class UrlBuilder {
         // Immutable copies for thread safety
         Map<String, String> safePathParam = pathParam != null ? Map.copyOf(pathParam) : Map.of();
         Map<String, String> safeQueryParam = queryParam != null ? Map.copyOf(queryParam) : Map.of();
-
-        String url = baseUrl + apiVersion + endpoint;
+        String apiVersionString = (apiVersion != null && !apiVersion.isEmpty()) ? apiVersion : "";
+        String url = baseUrl + apiVersionString + endpoint;
         if (safePathParam != null) {
             for (Map.Entry<String, String> entry : safePathParam.entrySet()) {
                 String key = entry.getKey();

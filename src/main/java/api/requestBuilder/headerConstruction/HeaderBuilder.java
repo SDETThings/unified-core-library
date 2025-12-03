@@ -8,6 +8,7 @@ package api.requestBuilder.headerConstruction;
 import api.requestBuilder.authentication.SecretsAndCertificates;
 import io.restassured.http.Header;
 import io.restassured.http.Headers;
+import io.restassured.response.Response;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,6 +27,32 @@ public class HeaderBuilder {
      */
     public static HeaderBuilder newBuilder() {
         return new HeaderBuilder();
+    }
+
+    /**
+     * Builds dynamic headers by replacing placeholder values with actual values
+     * @param unalteredHeaders - Map of headers with potential placeholders
+     * @param refResponses - Responses to extract dynamic values from
+     * @return - the current HeaderBuilder instance for method chaining.
+     */
+    public HeaderBuilder buildDynamicHeaders(Map<String,String> unalteredHeaders, Response... refResponses) {
+        for(Map.Entry<String, String> entry : unalteredHeaders.entrySet()) {
+            String headerKey = entry.getKey();
+            String headerValue = entry.getValue();
+            if(headerValue.startsWith("%")){
+                for(Response response : refResponses){
+                    if(response.jsonPath().get(headerValue.substring(1))!=null){
+                        String dynamicValue = response.jsonPath().get(headerValue.substring(1)).toString();
+                        headers.put(headerKey, dynamicValue);
+                        break;
+                    }
+                }
+            }else{
+                headers.put(headerKey, headerValue);
+            }
+        }
+
+        return this;
     }
 
     /**

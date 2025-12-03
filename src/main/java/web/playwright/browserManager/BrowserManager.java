@@ -52,7 +52,8 @@ public class BrowserManager {
 
         tlContext.set(tlBrowser.get().newContext(
                 new Browser.NewContextOptions()
-                        .setViewportSize((int) screenSize.getWidth(),(int) screenSize.getHeight())
+                        .setViewportSize(null)
+                        .setScreenSize((int) screenSize.getWidth(),(int) screenSize.getHeight())
                         .setIgnoreHTTPSErrors(true)
         ));
         tlPage.set(tlContext.get().newPage());
