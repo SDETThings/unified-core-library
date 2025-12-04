@@ -5,6 +5,7 @@ import com.microsoft.playwright.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class BrowserManager {
@@ -38,9 +39,9 @@ public class BrowserManager {
     private void initPlaywright(String browserName, boolean isHeadless) {
         tlPlaywright.set(Playwright.create());
         BrowserType.LaunchOptions options = new BrowserType.LaunchOptions().setChannel(browserName).setHeadless(isHeadless);
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
         switch (browserName.toLowerCase()) {
-            case "chrome", "chromium" -> tlBrowser.set(tlPlaywright.get().chromium().launch(options.setArgs(new ArrayList<>(Collections.singleton("--start-maximized")))));
+            case "chrome", "chromium" -> tlBrowser.set(tlPlaywright.get().chromium().launch(options.setArgs(new ArrayList<>(Collections.singleton("--start-maximized"))).setArgs(List.of("--no-sandbox"))));
             case "firefox" -> tlBrowser.set(tlPlaywright.get().firefox().launch(options.setArgs(new ArrayList<>(Collections.singleton("--start-maximized")))));
             case "webkit", "safari" -> tlBrowser.set(tlPlaywright.get().webkit().launch(options.setArgs(new ArrayList<>(Collections.singleton("--start-maximized")))));
             case "msedge", "edge" -> {
@@ -49,13 +50,21 @@ public class BrowserManager {
             }
             default -> throw new IllegalArgumentException("Unsupported browser: " + browserName);
         }
-
-        tlContext.set(tlBrowser.get().newContext(
-                new Browser.NewContextOptions()
-                        .setViewportSize(null)
-                        .setScreenSize((int) screenSize.getWidth(),(int) screenSize.getHeight())
-                        .setIgnoreHTTPSErrors(true)
-        ));
+        if(!isHeadless) {
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            tlContext.set(tlBrowser.get().newContext(
+                    new Browser.NewContextOptions()
+                            .setViewportSize(null)
+                            .setScreenSize((int) screenSize.getWidth(), (int) screenSize.getHeight())
+                            .setIgnoreHTTPSErrors(true)
+            ));
+        } else {
+            tlContext.set(tlBrowser.get().newContext(
+                    new Browser.NewContextOptions()
+                            .setViewportSize(null)
+                            .setIgnoreHTTPSErrors(true)
+            ));
+        }
         tlPage.set(tlContext.get().newPage());
     }
 
