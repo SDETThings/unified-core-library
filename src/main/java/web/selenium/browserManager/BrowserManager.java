@@ -16,6 +16,19 @@ public class BrowserManager {
             throw new IllegalArgumentException("Cannot create the object of this private constructor");
         }
     }
+    public static BrowserManager getBrowserManagerInstance(String browserName,boolean isHeadless) {
+        if(webDriverManagerInstance==null){
+            synchronized (BrowserManager.class){
+                if(webDriverManagerInstance==null){
+                    webDriverManagerInstance = new BrowserManager();
+                }
+            }
+        }
+        if(tlDriver.get()==null){
+            webDriverManagerInstance.setTlDriver(browserName,isHeadless);
+        }
+        return webDriverManagerInstance;
+    }
     private void setTlDriver(String browserName,boolean isHeadless){
         switch (browserName) {
             case "Chrome" -> {
@@ -36,19 +49,6 @@ public class BrowserManager {
             default -> throw new IllegalArgumentException("Unsupported browser: " + browserName);
         }
     }
-    public static BrowserManager getBrowserManagerInstance(String browserName,boolean isHeadless) {
-        if(webDriverManagerInstance==null){
-            synchronized (BrowserManager.class){
-                if(webDriverManagerInstance==null){
-                    webDriverManagerInstance = new BrowserManager();
-                }
-            }
-        }
-        if(tlDriver.get()==null){
-            webDriverManagerInstance.setTlDriver(browserName,isHeadless);
-        }
-        return webDriverManagerInstance;
-    }
     public WebDriver getDriver(){
         return tlDriver.get();
     }
@@ -58,7 +58,6 @@ public class BrowserManager {
             tlDriver.remove();
         }
     }
-
     private void configureChromeOptions(ChromeOptions options,boolean isHeadless) {
         if (isHeadless) {
             options.addArguments("--headless"); // Run in headless mode
@@ -68,7 +67,6 @@ public class BrowserManager {
         options.addArguments("--disable-gpu"); // Disable GPU (optional)
         options.addArguments("--window-size=1920,1080"); // Set window size
     }
-
     private void configureFirefoxOptions(FirefoxOptions options,boolean isHeadless) {
         if (isHeadless){
             options.addArguments("--headless"); // Correctly setting headless mode for Firefox
@@ -80,7 +78,6 @@ public class BrowserManager {
         options.addArguments("--window-size=1920,1080"); // Set window size for headless mode to avoid issues with certain web elements
         options.setCapability("acceptInsecureCerts", true);
     }
-
     private void configureEdgeOptions(EdgeOptions options,boolean isHeadless) {
         if (isHeadless) {
             options.addArguments("--headless");

@@ -4,10 +4,8 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ElementActionHandler {
@@ -41,11 +39,21 @@ public class ElementActionHandler {
         int maxAttempts = 2;
         int attempt = 0;
         T result = null;
-
+        String locatorDescription = null;
+        if(element !=null)
+        {
+            locatorDescription = describe(element).split("//")[1];
+        }
         while (attempt < maxAttempts) {
             try {
                 attempt++;
-                log.info("Attempt {} to perform action: {}", attempt, actionName);
+                if(locatorDescription!=null)
+                {
+                    log.info("=========================================================================");
+                    log.info("Attempt {} to perform action: {} on {}", attempt, actionName,locatorDescription);
+                }else{
+                    log.info("Attempt {} to perform action: {} on locator", attempt, actionName);
+                }
 
                 // 1️⃣ Smart Wait
                 WebElement readyElement = waitForElement(element, defaultTimeoutSeconds);
@@ -57,18 +65,36 @@ public class ElementActionHandler {
                     throw new ElementNotInteractableException("Element not interactable: " + describe(element));
 
                 // 3️⃣ Scroll & highlight
-                scrollIntoViewAndHighlight(readyElement);
+                //scrollIntoViewAndHighlight(readyElement);
 
                 // 4️⃣ Perform the action and capture return value
                 result = action.get();
-
-                log.info("{} succeeded on attempt {}", actionName, attempt);
+                if(locatorDescription!=null)
+                {
+                    log.info("{} succeeded on locator {} attempt {}", actionName, locatorDescription, attempt);
+                    log.info("=========================================================================");
+                }else{
+                    log.info("{} succeeded on locator attempt {}", actionName, attempt);
+                    log.info("=========================================================================");
+                }
                 return result; // ✅ success — return immediately
 
             } catch (Exception e) {
-                log.warn("{} failed on attempt {}: {}", actionName, attempt, e.getMessage());
+                if(locatorDescription!=null)
+                {
+                    log.warn("{} failed on locator {} for attempt {}: {}", actionName,locatorDescription, attempt, e.getMessage());
+                }else{
+                    log.warn("{} failed on locator for attempt {}: {}", actionName, attempt, e.getMessage());
+                }
                 if (attempt >= maxAttempts) {
-                    log.error("Action '{}' failed after {} attempts", actionName, maxAttempts);
+                    if(locatorDescription!=null)
+                    {
+                        log.error("Action '{}' on locator {} failed after {} attempts", actionName,locatorDescription, maxAttempts);                    log.info("=========================================================================");
+                        log.info("=========================================================================");
+                    }else{
+                        log.error("Action '{}' on locator failed after {} attempts", actionName, maxAttempts);
+                        log.info("=========================================================================");
+                    }
                     return null;
                 }
                 sleep(1000);

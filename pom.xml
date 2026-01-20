@@ -179,7 +179,18 @@
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>5.4.0</version>
-            <scope>compile</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.9.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-ollama -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
+            <version>1.9.1</version>
         </dependency>
     </dependencies>
     <build>
