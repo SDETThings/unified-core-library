@@ -13,15 +13,12 @@ import java.util.regex.Pattern;
 public class PayloadBuilder {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     JsonOperations jsonOperations;
-    private static final Pattern REF_PATTERN = Pattern.compile("^\\$\\[([a-zA-Z0-9_]+)]\\.(.+)$");
     private PayloadBuilder(){
 
     }
     public static PayloadBuilder getPayloadBuilderInstance(){
         return new PayloadBuilder();
     }
-    // Matches: $[responseName].json.path
-
     /**
      * Payload builder with chained response value support.
      * @param basePayload - the original payload
@@ -75,13 +72,13 @@ public class PayloadBuilder {
                         }
                     }
                 }
-            }else {
+            }
+            else {
                 alteredPayload.add(key, expectedValue);
             }
         }
         return alteredPayload;
     }
-
     /**
      * Simple payload builder without chained values.
      * @param basePayload - the original payload
@@ -96,7 +93,6 @@ public class PayloadBuilder {
         }
         return alteredPayload;
     }
-
     /**
      * Payload builder with chained response value support and previous payloads.
      * @param basePayload - the original payload

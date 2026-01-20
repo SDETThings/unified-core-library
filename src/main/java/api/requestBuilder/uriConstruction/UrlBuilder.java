@@ -11,8 +11,7 @@ public class UrlBuilder {
      * @param baseUrl - base URL
      * @param apiVersion - api version
      * @param endpoint - endpoint ( includes everything apart from the base url and api version )
-     * @param queryParam - query parameters in form of a map
-     *
+     * @param queryParam - query parameters in form of a map     *
      * @param pathParam - path parameters in form of a map
      * @return complete modified request url
      */
@@ -20,8 +19,11 @@ public class UrlBuilder {
         // Immutable copies for thread safety
         Map<String, String> safePathParam = pathParam != null ? Map.copyOf(pathParam) : Map.of();
         Map<String, String> safeQueryParam = queryParam != null ? Map.copyOf(queryParam) : Map.of();
+        // Handle null or empty apiVersion
         String apiVersionString = (apiVersion != null && !apiVersion.isEmpty()) ? apiVersion : "";
+        // Construct base URL with API version and raw endpoint
         String url = baseUrl + apiVersionString + endpoint;
+        // Replace path parameters
         if (safePathParam != null) {
             for (Map.Entry<String, String> entry : safePathParam.entrySet()) {
                 String key = entry.getKey();
@@ -29,6 +31,7 @@ public class UrlBuilder {
                 url = url.replace("{" + key + "}", replacementValue);
             }
         }
+        // Replace query parameters
         if (safeQueryParam != null ) {
             // Regex to match ?key={} or &key={}
             Pattern pattern = Pattern.compile("([?&])(\\w+)=\\{}");

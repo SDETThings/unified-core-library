@@ -20,7 +20,6 @@ public class HeaderBuilder {
     private HeaderBuilder() {
         headers = new HashMap<>();
     }
-
     /**
      * Factory method to create a new instance of HeaderBuilder.
      * @return a new HeaderBuilder instance.

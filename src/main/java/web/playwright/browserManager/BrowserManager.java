@@ -103,4 +103,7 @@ public class BrowserManager {
         tlBrowser.remove();
         tlPlaywright.remove();
     }
+    public static Page getCurrentPage() {
+        return tlPage.get();
+    }
 }
