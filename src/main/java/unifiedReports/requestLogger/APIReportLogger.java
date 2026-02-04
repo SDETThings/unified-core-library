@@ -2,6 +2,8 @@ package unifiedReports.requestLogger;
 
 import com.aventstack.chaintest.plugins.ChainTestListener;
 import com.google.gson.*;
+import reporting.MiniReporter;
+
 import java.util.Map;
 
 public class APIReportLogger {
@@ -17,7 +19,7 @@ public class APIReportLogger {
     /**
      * Logs full API request and response cycle.
      */
-    public void logApiDetails(String method, String url, String requestBody, int statusCode, String responseBody,
+    /*public void logApiDetails(String method, String url, String requestBody, int statusCode, String responseBody,
                               boolean isPassed, long duration) {
         ChainTestListener.log("********************************************************");
         String stepTitle = "{"+method +"} - " + url + "(" +duration+"ms)";
@@ -33,6 +35,33 @@ public class APIReportLogger {
             String prettyRes = prettyJson(responseBody);
             ChainTestListener.log("Response Body: \n" + prettyRes);
         }
+    }*/
+    public void logApiDetails(String method, String url, String requestBody, int statusCode, String responseBody,
+                              boolean isPassed, long duration) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("********************************************************\n");
+        //MiniReporter.codeBlock("********************************************************");
+        String stepTitle = "{"+method +"} - " + url + "(" +duration+"ms)";
+        //MiniReporter.codeBlock(stepTitle);
+        sb.append(stepTitle).append("\n");
+        if (requestBody != null && !requestBody.isEmpty()) {
+            String prettyReq = prettyJson(requestBody);
+            sb.append("Request Body:\n" + prettyReq + "\n");
+            //MiniReporter.codeBlock(sb.toString());
+           // MiniReporter.codeBlock(prettyReq);
+        }else{
+            sb.append("Request Body: <EMPTY>"+"\n");
+            //MiniReporter.codeBlock("Request Body: <EMPTY>");
+        }
+        sb.append("Response Status Code:" + statusCode + "\n");
+        //MiniReporter.codeBlock("Response Status Code:" + statusCode);
+        if (responseBody != null && !responseBody.isEmpty()) {
+            String prettyRes = prettyJson(responseBody);
+            sb.append("Response Body:\n" + prettyRes + "\n");
+           // MiniReporter.codeBlock("Response Body: \n" + prettyRes);
+            //MiniReporter.codeBlock(prettyRes);
+        }
+        MiniReporter.codeBlock(sb.toString());
     }
 
     /**
